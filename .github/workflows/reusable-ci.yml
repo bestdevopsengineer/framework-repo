@@ -58,6 +58,15 @@ jobs:
         run: |
           docker tag demo-service:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:${{ github.sha }}
 
+      - name: Snyk Container Scan
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: demo-service:${{ github.sha }}
+          args: --severity-threshold=high
+          
+
       - name: Push Docker image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:${{ github.sha }}
