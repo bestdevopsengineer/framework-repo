@@ -1,0 +1,45 @@
+name: Reusable CI (Build + Test)
+
+on:
+  workflow_call:
+    inputs:
+      java_version:
+        required: false
+        type: string
+        default: "21"
+      run_tests:
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ inputs.java_version }}
+
+      - name: Build
+        run: |
+          if [ -f "mvnw" ]; then
+            chmod +x mvnw
+            ./mvnw -B -DskipTests package
+          else
+            mvn -B -DskipTests package
+          fi
+
+      - name: Test
+        if: ${{ inputs.run_tests }}
+        run: |
+          if [ -f "mvnw" ]; then
+            ./mvnw -B test
+          else
+            mvn -B test
+          fi
