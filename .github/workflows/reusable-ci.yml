@@ -43,3 +43,7 @@ jobs:
           else
             mvn -B test
           fi
+          
+      - name: Build Docker image
+        run: |
+          docker build -t demo-service:${{ github.sha }} .
