@@ -57,6 +57,7 @@ jobs:
       - name: Tag Docker image
         run: |
           docker tag demo-service:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:${{ github.sha }}
+          docker tag demo-service:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:latest
 
       - name: Snyk Container Scan
         uses: snyk/actions/docker@master
@@ -70,3 +71,4 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:latest
