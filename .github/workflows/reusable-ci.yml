@@ -55,12 +55,9 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          builder: ${{ steps.buildx.outputs.name }}
           context: .
           load: true
           tags: demo-service:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
           
       - name: Upload build artifact
