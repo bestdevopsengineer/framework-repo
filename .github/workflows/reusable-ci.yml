@@ -67,8 +67,8 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          docker tag ${{ inputs.image_name }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:${{ github.sha }}
-          docker tag ${{ inputs.image_name }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:latest
+          docker tag ${{ inputs.image_name }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }}
+          docker tag ${{ inputs.image_name }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:latest
 
       - name: Setup Snyk
         uses: snyk/actions/setup@master
