@@ -205,7 +205,7 @@ jobs:
 
       - name: Verify green rollout
         run: |
-          kubectl rollout status deployment/${{ inputs.image_name }}-green-bad -n $DEPLOY_ENV --timeout=120s
+          kubectl rollout status deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV --timeout=120s
 
       - name: Check green pods
         run: |
