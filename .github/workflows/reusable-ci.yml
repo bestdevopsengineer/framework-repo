@@ -25,7 +25,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write
+  id-token: write  #required for OIDC authentication
   
 jobs:
   ci:
@@ -59,7 +59,8 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ inputs.java_version }}
-
+          
+       # Supports both:Maven wrapper (mvnw) and System Maven (mvn)
       - name: Build
         run: |
           if [ -f "mvnw" ]; then
@@ -68,7 +69,8 @@ jobs:
           else
             mvn -B -DskipTests package
           fi
-
+          
+      # Runs tests only if the caller enables them.
       - name: Test
         if: ${{ inputs.run_tests }}
         run: |
@@ -78,24 +80,26 @@ jobs:
             mvn -B test
           fi
 
-          
+      # Builds the Docker image using the commit SHA as the tag.
       - name: Build Docker image 
         run: | 
           docker build -t ${{ inputs.image_name }}:${{ github.sha }} .
 
-          
+      # Stores the JAR file so other workflows can download it.
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: java-build-artifact
           path: target/*.jar
 
+      # Authenticates using secrets.
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Creates two tags: SHA tag (immutable) and latest tag (mutable)
       - name: Tag Docker image
         run: |
           docker tag ${{ inputs.image_name }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }}
@@ -104,6 +108,7 @@ jobs:
       - name: Setup Snyk
         uses: snyk/actions/setup@master
 
+      # Scans the Docker image for vulnerabilities.| Saves results to JSON.| Fails the job only if HIGH or CRITICAL issues exist.
       - name: Snyk Container Scan (CLI)
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -121,22 +126,25 @@ jobs:
 
           echo "No High/Critical vulnerabilities found"
           
-
+      # Uploads both tags to Docker Hub.
       - name: Push Docker image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:latest
 
+      # Removes unused Docker images to free space.
       - name: Cleanup
         if: always()
         run: |
           docker image prune -af || true
-          
+
+      # Deploy immediately after CI.
       - name: Trunk deploy
         if: ${{ inputs.delivery_mode == 'trunk' }}
         run: |
           echo "Trunk-based mode: deploy automatically after successful CI"
 
+      # Build now, deploy later.
       - name: Release train hold
         if: ${{ inputs.delivery_mode == 'release-train' }}
         run: |
@@ -147,24 +155,29 @@ jobs:
     if: github.event_name == 'push'
     env:
       BRANCH_NAME: ${{ github.ref_name }}
-    needs: ci
+    needs: ci   # Runs only after CI succeeds.
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Installs kubectl. 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
 
+      # Authenticates to AWS without long‑lived keys.
       - name: Configure AWS credentials with OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # Connects kubectl to your EKS cluster.
       - name: Update kubeconfig for EKS
         run: |
           aws eks update-kubeconfig --name eksdemo1 --region ${{ secrets.AWS_REGION }}
-      
+
+      # Ensures the runner can talk to the cluster.
       - name: Verify cluster access
         run: |
           kubectl get nodes
@@ -192,17 +205,20 @@ jobs:
         if: ${{ inputs.delivery_mode == 'release-train' }}
         run: |
           echo "Promoting ${{ inputs.image_name }} to $DEPLOY_ENV in release-train mode"
-          
+
+      # Creates namespace if missing.
       - name: Ensure namespace exists
         run: |
           kubectl get namespace $DEPLOY_ENV || kubectl create namespace $DEPLOY_ENV
-          
+
+      # Deploys the new version as green.
       - name: Deploy green version
         run: |
           kubectl apply -f k8s/deployment-green.yaml -n $DEPLOY_ENV
           kubectl apply -f k8s/service.yaml -n $DEPLOY_ENV
           kubectl set image deployment/${{ inputs.image_name }}-green ${{ inputs.image_name }}=${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }} -n $DEPLOY_ENV          
 
+      # Waits for pods to become ready.
       - name: Verify green rollout
         run: |
           kubectl rollout status deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV --timeout=120s
@@ -210,7 +226,8 @@ jobs:
       - name: Check green pods
         run: |
           kubectl get pods -n $DEPLOY_ENV -l app=${{ inputs.image_name }},version=green
-    
+
+      # Service now points to green pods.
       - name: Switch traffic to green
         run: |
           kubectl patch service ${{ inputs.image_name }} -n $DEPLOY_ENV -p '{"spec":{"selector":{"app":"'"${{ inputs.image_name }}"'","version":"green"}}}'
@@ -222,17 +239,20 @@ jobs:
       - name: Verify active green rollout
         run: |
           kubectl rollout status deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV --timeout=120s
-      
+
+      # Blue is kept but inactive.
       - name: Scale down blue
         run: |
           kubectl scale deployment/${{ inputs.image_name }}-blue --replicas=0 -n $DEPLOY_ENV
 
+      # If anything fails: Scale blue back up| Point service back to blue |
       - name: Roll back service to blue on failure
         if: failure()
         run: |
           kubectl scale deployment/${{ inputs.image_name }}-blue --replicas=1 -n $DEPLOY_ENV || true
           kubectl patch service ${{ inputs.image_name }} -n $DEPLOY_ENV -p '{"spec":{"selector":{"app":"'"${{ inputs.image_name }}"'","version":"blue"}}}' || true
-
+      
+      # Delete failed green deployment
       - name: Cleanup failed green deployment
         if: failure()
         run: |
