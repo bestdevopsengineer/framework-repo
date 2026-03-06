@@ -46,6 +46,7 @@ jobs:
 
 
       - name: Set up Docker Buildx
+        id: buildx
         uses: docker/setup-buildx-action@v3
         with:
           driver: docker-container
@@ -53,6 +54,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
+          builder: ${{ steps.buildx.outputs.name }}
           context: .
           load: true
           tags: demo-service:${{ github.sha }}
