@@ -3,6 +3,9 @@ name: Reusable CI (Build + Test)
 on:
   workflow_call:
     inputs:
+      image_name:
+        required: true
+        type: string
       java_version:
         required: false
         type: string
@@ -47,7 +50,7 @@ jobs:
           
       - name: Build Docker image 
         run: | 
-          docker build -t demo-service:${{ github.sha }} .
+          docker build -t ${{ inputs.image_name }}:${{ github.sha }} .
 
           
       - name: Upload build artifact
@@ -64,8 +67,8 @@ jobs:
 
       - name: Tag Docker image
         run: |
-          docker tag demo-service:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:${{ github.sha }}
-          docker tag demo-service:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:latest
+          docker tag ${{ inputs.image_name }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:${{ github.sha }}
+          docker tag ${{ inputs.image_name }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:latest
 
       - name: Setup Snyk
         uses: snyk/actions/setup@master
@@ -74,7 +77,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          snyk container test demo-service:${{ github.sha }} \
+          snyk container test ${{ inputs.image_name }}:${{ github.sha }} \
             --severity-threshold=high \
             --file=Dockerfile \
             --json > snyk-results.json || true
@@ -91,8 +94,8 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:${{ github.sha }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:latest
 
       - name: Cleanup
         if: always()
