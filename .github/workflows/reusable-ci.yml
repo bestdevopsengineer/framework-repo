@@ -225,9 +225,8 @@ jobs:
       
       - name: Scale down blue
         run: |
-          kubectl scale deployment/${{ inputs.image_name }}-blue --replicas=1 -n $DEPLOY_ENV || true
-          kubectl patch service ${{ inputs.image_name }} -n $DEPLOY_ENV -p '{"spec":{"selector":{"app":"'"${{ inputs.image_name }}"'","version":"blue"}}}' || true
-
+          kubectl scale deployment/${{ inputs.image_name }}-blue --replicas=0 -n $DEPLOY_ENV
+    
       - name: Roll back service to blue on failure
         if: failure()
         run: |
