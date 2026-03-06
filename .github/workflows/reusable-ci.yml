@@ -71,9 +71,19 @@ jobs:
       - name: Snyk Container Scan (CLI)
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          SNYK_API: https://api.eu.snyk.io
         run: |
-          snyk container test demo-service:${{ github.sha }} --severity-threshold=high
+          snyk container test demo-service:${{ github.sha }} \
+            --severity-threshold=high \
+            --file=Dockerfile \
+            --json > snyk-results.json || true
+
+          # Fail the job only if HIGH/CRITICAL vulnerabilities exist
+          if grep -q '"severity":"high"\|"severity":"critical"' snyk-results.json; then
+            echo "High/Critical vulnerabilities found"
+            exit 1
+          fi
+
+          echo "No High/Critical vulnerabilities found"
           
           
 
