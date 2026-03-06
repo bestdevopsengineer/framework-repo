@@ -69,9 +69,10 @@ jobs:
         uses: snyk/actions/docker@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_API: https://api.snyk.io
         with:
           image: demo-service:${{ github.sha }}
-          args: --severity-threshold=high --org=bestdevopsengineer
+          args: --severity-threshold=high
           
 
       - name: Push Docker image
