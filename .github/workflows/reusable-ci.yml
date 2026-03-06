@@ -71,7 +71,7 @@ jobs:
       - name: Snyk Container Scan (CLI)
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          SNYK_API: https://api.snyk.io
+          SNYK_API: https://api.eu.snyk.io
         run: |
           snyk container test demo-service:${{ github.sha }} --severity-threshold=high
           
