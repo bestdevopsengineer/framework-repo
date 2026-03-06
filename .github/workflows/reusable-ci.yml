@@ -142,15 +142,32 @@ jobs:
           
   deploy:
     runs-on: ubuntu-latest
+    env:
+      BRANCH_NAME: ${{ github.ref_name }}
     needs: ci
 
     steps:
+      - name: Resolve deploy environment
+        run: |
+          if [ "${BRANCH_NAME}" = "dev" ]; then
+            echo "DEPLOY_ENV=dev" >> $GITHUB_ENV
+          elif [ "${BRANCH_NAME}" = "test" ]; then
+            echo "DEPLOY_ENV=test" >> $GITHUB_ENV
+          elif [ "${BRANCH_NAME}" = "main" ]; then
+            echo "DEPLOY_ENV=staging" >> $GITHUB_ENV
+          elif [ "${BRANCH_NAME}" = "prod" ]; then
+            echo "DEPLOY_ENV=prod" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_ENV=dev" >> $GITHUB_ENV
+          fi
+
       - name: Trunk deploy
         if: ${{ inputs.delivery_mode == 'trunk' }}
         run: |
-          echo "Deploying ${{ inputs.image_name }} to ${{ inputs.deploy_target }} in trunk mode"
+          echo "Deploying ${{ inputs.image_name }} to $DEPLOY_ENV in trunk mode"
 
       - name: Release-train deploy
         if: ${{ inputs.delivery_mode == 'release-train' }}
         run: |
-          echo "Promoting ${{ inputs.image_name }} to ${{ inputs.deploy_target }} in release-train mode"
+          echo "Promoting ${{ inputs.image_name }} to $DEPLOY_ENV in release-train mode"
+          
