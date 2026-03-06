@@ -24,8 +24,8 @@ on:
         default: true
 
 permissions:
-  id-token: write
   contents: read
+  id-token: write
   
 jobs:
   ci:
@@ -191,11 +191,6 @@ jobs:
         if: ${{ inputs.delivery_mode == 'release-train' }}
         run: |
           echo "Promoting ${{ inputs.image_name }} to $DEPLOY_ENV in release-train mode"
-          
-      - name: Setup kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > $HOME/.kube/config
 
       - name: Deploy to Kubernetes
         run: |
