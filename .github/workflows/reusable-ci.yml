@@ -217,3 +217,6 @@ jobs:
       - name: Verify active green rollout
         run: |
           kubectl rollout status deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV --timeout=120s
+      - name: Scale down blue
+        run: |
+          kubectl scale deployment/${{ inputs.image_name }}-blue --replicas=0 -n $DEPLOY_ENV
