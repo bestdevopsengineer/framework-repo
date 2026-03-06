@@ -104,3 +104,13 @@ jobs:
         if: always()
         run: |
           docker image prune -af || true
+          
+      - name: Trunk deploy
+        if: ${{ inputs.delivery_mode == 'trunk' }}
+        run: |
+          echo "Trunk-based mode: deploy automatically after successful CI"
+
+      - name: Release train hold
+        if: ${{ inputs.delivery_mode == 'release-train' }}
+        run: |
+          echo "Release-train mode: artifact is ready, waiting for scheduled release/promotion"
