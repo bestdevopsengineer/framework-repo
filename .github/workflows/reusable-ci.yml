@@ -196,12 +196,12 @@ jobs:
         run: |
           kubectl get namespace $DEPLOY_ENV || kubectl create namespace $DEPLOY_ENV
           
-      - name: Deploy to Kubernetes
+      - name: Deploy green version
         run: |
-          kubectl apply -f k8s/deployment.yaml -n $DEPLOY_ENV
+          kubectl apply -f k8s/deployment-green.yaml -n $DEPLOY_ENV
           kubectl apply -f k8s/service.yaml -n $DEPLOY_ENV
-          kubectl set image deployment/${{ inputs.image_name }} ${{ inputs.image_name }}=${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }} -n $DEPLOY_ENV
-          
+          kubectl set image deployment/${{ inputs.image_name }}-green ${{ inputs.image_name }}=${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }} -n $DEPLOY_ENV          
+      
       - name: Verify rollout
         run: |
           kubectl rollout status deployment/${{ inputs.image_name }} -n $DEPLOY_ENV --timeout=120s
