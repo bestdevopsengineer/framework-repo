@@ -159,6 +159,15 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --name eksdemo1 --region ${{ secrets.AWS_REGION }}
+      
+      - name: Verify cluster access
+        run: |
+          kubectl get nodes
+          
       - name: Resolve deploy environment
         run: |
           if [ "${BRANCH_NAME}" = "dev" ]; then
