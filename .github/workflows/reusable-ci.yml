@@ -191,13 +191,17 @@ jobs:
         if: ${{ inputs.delivery_mode == 'release-train' }}
         run: |
           echo "Promoting ${{ inputs.image_name }} to $DEPLOY_ENV in release-train mode"
-
+          
+      - name: Ensure namespace exists
+        run: |
+          kubectl get namespace $DEPLOY_ENV || kubectl create namespace $DEPLOY_ENV
+          
       - name: Deploy to Kubernetes
         run: |
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-          kubectl set image deployment/${{ inputs.image_name }} ${{ inputs.image_name }}=${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }}
+          kubectl apply -f k8s/deployment.yaml -n $DEPLOY_ENV
+          kubectl apply -f k8s/service.yaml -n $DEPLOY_ENV
+          kubectl set image deployment/${{ inputs.image_name }} ${{ inputs.image_name }}=${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }} -n $DEPLOY_ENV
           
       - name: Verify rollout
         run: |
-          kubectl rollout status deployment/order-service --timeout=120s
+          kubectl rollout status deployment/${{ inputs.image_name }} -n $DEPLOY_ENV --timeout=120s
