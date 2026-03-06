@@ -79,7 +79,14 @@ jobs:
           else
             mvn -B test
           fi
-
+          
+      # scan the source dependencies.
+      - name: Snyk SCA Scan (Dependencies)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk test --severity-threshold=high
+    
       # Builds the Docker image using the commit SHA as the tag.
       - name: Build Docker image 
         run: | 
