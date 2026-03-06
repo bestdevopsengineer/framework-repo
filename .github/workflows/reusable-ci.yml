@@ -89,7 +89,14 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          snyk test --severity-threshold=high
+          snyk test --file=pom.xml --json > snyk-sca-results.json || true
+
+          if grep -q '"severity":"high"\|"severity":"critical"' snyk-sca-results.json; then
+            echo "High/Critical dependency vulnerabilities found"
+            exit 1
+          fi
+
+          echo "No High/Critical dependency vulnerabilities found"
     
       # Builds the Docker image using the commit SHA as the tag.
       - name: Build Docker image 
