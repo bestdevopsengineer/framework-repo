@@ -234,13 +234,26 @@ jobs:
         run: |
           kubectl get namespace $DEPLOY_ENV || kubectl create namespace $DEPLOY_ENV
 
-      # Deploys the new version as green.
-      - name: Deploy green version
+      - name: Detect active color
         run: |
-          kubectl apply -f k8s/deployment-green.yaml -n $DEPLOY_ENV
+          ACTIVE_COLOR=$(kubectl get svc ${{ inputs.image_name }} -n $DEPLOY_ENV -o jsonpath='{.spec.selector.version}' 2>/dev/null || echo "")
+          if [ "$ACTIVE_COLOR" = "blue" ]; then
+            echo "ACTIVE_COLOR=blue" >> $GITHUB_ENV
+            echo "TARGET_COLOR=green" >> $GITHUB_ENV
+          else
+            echo "ACTIVE_COLOR=green" >> $GITHUB_ENV
+            echo "TARGET_COLOR=blue" >> $GITHUB_ENV
+          fi
+          echo "Active color: $ACTIVE_COLOR"
+          echo "Target color: $TARGET_COLOR"
+          
+      # Deploys the new version as green.
+      - name: Deploy new version
+        run: |
+          kubectl apply -f k8s/deployment-${TARGET_COLOR}.yaml -n $DEPLOY_ENV
           kubectl apply -f k8s/service.yaml -n $DEPLOY_ENV
-          kubectl set image deployment/${{ inputs.image_name }}-green ${{ inputs.image_name }}=${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }} -n $DEPLOY_ENV          
-
+          kubectl set image deployment/${{ inputs.image_name }}-${TARGET_COLOR} ${{ inputs.image_name }}=${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }} -n $DEPLOY_ENV
+        
       # Waits for pods to become ready.
       - name: Verify green rollout
         run: |
@@ -251,29 +264,30 @@ jobs:
           kubectl get pods -n $DEPLOY_ENV -l app=${{ inputs.image_name }},version=green
 
       # Service now points to green pods.
-      - name: Switch traffic to green
+      - name: Switch traffic to target color
         run: |
-          kubectl patch service ${{ inputs.image_name }} -n $DEPLOY_ENV -p '{"spec":{"selector":{"app":"'"${{ inputs.image_name }}"'","version":"green"}}}'
+          kubectl patch service ${{ inputs.image_name }} -n $DEPLOY_ENV -p '{"spec":{"selector":{"app":"'"${{ inputs.image_name }}"'","version":"'"${TARGET_COLOR}"'"}}}'
       
       - name: Show active service selector
         run: |
           kubectl get svc ${{ inputs.image_name }} -n $DEPLOY_ENV -o yaml
       
-      - name: Verify active green rollout
+      - name: Verify target rollout
         run: |
-          kubectl rollout status deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV --timeout=120s
+          kubectl rollout status deployment/${{ inputs.image_name }}-${TARGET_COLOR} -n $DEPLOY_ENV --timeout=120s
 
       # Blue is kept but inactive.
-      - name: Scale down blue
+      - name: Scale down previous color
         run: |
-          kubectl scale deployment/${{ inputs.image_name }}-blue --replicas=0 -n $DEPLOY_ENV
+          kubectl scale deployment/${{ inputs.image_name }}-${ACTIVE_COLOR} --replicas=0 -n $DEPLOY_ENV
 
       # If anything fails: Scale blue back up| Point service back to blue |
-      - name: Roll back service to blue on failure
+      - name: Roll back service on failure
         if: failure()
         run: |
-          kubectl scale deployment/${{ inputs.image_name }}-blue --replicas=1 -n $DEPLOY_ENV || true
-          kubectl patch service ${{ inputs.image_name }} -n $DEPLOY_ENV -p '{"spec":{"selector":{"app":"'"${{ inputs.image_name }}"'","version":"blue"}}}' || true
+          kubectl scale deployment/${{ inputs.image_name }}-${ACTIVE_COLOR} --replicas=1 -n $DEPLOY_ENV || true
+          kubectl patch service ${{ inputs.image_name }} -n $DEPLOY_ENV -p '{"spec":{"selector":{"app":"'"${{ inputs.image_name }}"'","version":"'"${ACTIVE_COLOR}"'"}}}' || true
+          kubectl delete deployment/${{ inputs.image_name }}-${TARGET_COLOR} -n $DEPLOY_ENV || true      
       
       # Delete failed green deployment
       - name: Cleanup failed green deployment
