@@ -45,12 +45,9 @@ jobs:
           fi
 
           
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          load: true
-          tags: demo-service:${{ github.sha }}
+      - name: Build Docker image 
+        run: | 
+          docker build -t demo-service:${{ github.sha }} .
 
           
       - name: Upload build artifact
