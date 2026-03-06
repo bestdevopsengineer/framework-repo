@@ -257,11 +257,11 @@ jobs:
       # Waits for pods to become ready.
       - name: Verify green rollout
         run: |
-          kubectl rollout status deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV --timeout=120s
+          kubectl rollout status deployment/${{ inputs.image_name }}-${TARGET_COLOR} -n $DEPLOY_ENV --timeout=120s
 
       - name: Check green pods
         run: |
-          kubectl get pods -n $DEPLOY_ENV -l app=${{ inputs.image_name }},version=green
+          kubectl get pods -n $DEPLOY_ENV -l app=${{ inputs.image_name }},version=${TARGET_COLOR}
 
       # Service now points to green pods.
       - name: Switch traffic to target color
@@ -293,4 +293,4 @@ jobs:
       - name: Cleanup failed green deployment
         if: failure()
         run: |
-          kubectl delete deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV || true
+          kubectl delete deployment/${{ inputs.image_name }}-${TARGET_COLOR} -n $DEPLOY_ENV || true
