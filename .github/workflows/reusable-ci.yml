@@ -205,7 +205,15 @@ jobs:
       - name: Verify green rollout
         run: |
           kubectl rollout status deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV --timeout=120s
-          
-      - name: Verify rollout
+
+      - name: Switch traffic to green
         run: |
-          kubectl rollout status deployment/${{ inputs.image_name }} -n $DEPLOY_ENV --timeout=120s
+          kubectl patch service ${{ inputs.image_name }} -n $DEPLOY_ENV -p '{"spec":{"selector":{"app":"'"${{ inputs.image_name }}"'","version":"green"}}}'
+      
+      - name: Show active service selector
+        run: |
+          kubectl get svc ${{ inputs.image_name }} -n $DEPLOY_ENV -o yaml
+      
+      - name: Verify active green rollout
+        run: |
+          kubectl rollout status deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV --timeout=120s
