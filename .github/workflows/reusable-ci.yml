@@ -71,7 +71,7 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           image: demo-service:${{ github.sha }}
-          args: --severity-threshold=high
+          args: --severity-threshold=high --org=bestdevopsengineer
           
 
       - name: Push Docker image
