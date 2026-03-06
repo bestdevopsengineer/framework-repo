@@ -90,9 +90,6 @@ jobs:
 
           echo "No High/Critical vulnerabilities found"
           
-      - name: Debug - list docker images
-        run: |
-          docker images          
 
       - name: Push Docker image
         run: |
