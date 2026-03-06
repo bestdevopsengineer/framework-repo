@@ -91,3 +91,8 @@ jobs:
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:${{ github.sha }}
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/demo-service:latest
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker image prune -af || true
