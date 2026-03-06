@@ -237,13 +237,20 @@ jobs:
       - name: Detect active color
         run: |
           ACTIVE_COLOR=$(kubectl get svc ${{ inputs.image_name }} -n $DEPLOY_ENV -o jsonpath='{.spec.selector.version}' 2>/dev/null || echo "")
+      
           if [ "$ACTIVE_COLOR" = "blue" ]; then
-            echo "ACTIVE_COLOR=blue" >> $GITHUB_ENV
-            echo "TARGET_COLOR=green" >> $GITHUB_ENV
+            TARGET_COLOR=green
+          elif [ "$ACTIVE_COLOR" = "green" ]; then
+            TARGET_COLOR=blue
           else
-            echo "ACTIVE_COLOR=green" >> $GITHUB_ENV
-            echo "TARGET_COLOR=blue" >> $GITHUB_ENV
+            echo "No active color found (first deployment)"
+            TARGET_COLOR=blue
+            ACTIVE_COLOR=""
           fi
+
+          echo "ACTIVE_COLOR=$ACTIVE_COLOR" >> $GITHUB_ENV
+          echo "TARGET_COLOR=$TARGET_COLOR" >> $GITHUB_ENV
+      
           echo "Active color: $ACTIVE_COLOR"
           echo "Target color: $TARGET_COLOR"
           
@@ -279,7 +286,11 @@ jobs:
       # Blue is kept but inactive.
       - name: Scale down previous color
         run: |
-          kubectl scale deployment/${{ inputs.image_name }}-${ACTIVE_COLOR} --replicas=0 -n $DEPLOY_ENV
+          if [ -n "$ACTIVE_COLOR" ]; then
+            kubectl scale deployment/${{ inputs.image_name }}-${ACTIVE_COLOR} --replicas=0 -n $DEPLOY_ENV
+          else
+            echo "No previous color to scale down"
+          fi
 
       # If anything fails: Scale blue back up| Point service back to blue |
       - name: Roll back service on failure
