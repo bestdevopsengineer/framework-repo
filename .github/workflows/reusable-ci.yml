@@ -6,6 +6,10 @@ on:
       image_name:
         required: true
         type: string
+      delivery_mode:
+        required: false
+        type: string
+        default: trunk
       java_version:
         required: false
         type: string
