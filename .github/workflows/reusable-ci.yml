@@ -232,3 +232,8 @@ jobs:
         run: |
           kubectl scale deployment/${{ inputs.image_name }}-blue --replicas=1 -n $DEPLOY_ENV || true
           kubectl patch service ${{ inputs.image_name }} -n $DEPLOY_ENV -p '{"spec":{"selector":{"app":"'"${{ inputs.image_name }}"'","version":"blue"}}}' || true
+
+      - name: Cleanup failed green deployment
+        if: failure()
+        run: |
+          kubectl delete deployment/${{ inputs.image_name }}-green -n $DEPLOY_ENV || true
