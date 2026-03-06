@@ -23,7 +23,9 @@ on:
         type: boolean
         default: true
 
-
+permissions:
+  id-token: write
+  contents: read
   
 jobs:
   ci:
@@ -147,6 +149,16 @@ jobs:
     needs: ci
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
       - name: Resolve deploy environment
         run: |
           if [ "${BRANCH_NAME}" = "dev" ]; then
@@ -171,3 +183,12 @@ jobs:
         run: |
           echo "Promoting ${{ inputs.image_name }} to $DEPLOY_ENV in release-train mode"
           
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 -d > $HOME/.kube/config
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
