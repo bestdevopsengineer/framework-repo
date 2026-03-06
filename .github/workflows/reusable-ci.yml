@@ -286,10 +286,12 @@ jobs:
       # Blue is kept but inactive.
       - name: Scale down previous color
         run: |
-          if [ -n "$ACTIVE_COLOR" ]; then
+          echo "ACTIVE_COLOR=$ACTIVE_COLOR"
+      
+          if [ -n "$ACTIVE_COLOR" ] && [ "$ACTIVE_COLOR" != "null" ]; then
             kubectl scale deployment/${{ inputs.image_name }}-${ACTIVE_COLOR} --replicas=0 -n $DEPLOY_ENV
           else
-            echo "No previous color to scale down"
+            echo "Skipping scale down because no active color exists"
           fi
 
       # If anything fails: Scale blue back up| Point service back to blue |
