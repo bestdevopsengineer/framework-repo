@@ -79,7 +79,11 @@ jobs:
           else
             mvn -B test
           fi
-          
+
+      - name: Setup Snyk
+        uses: snyk/actions/setup@master
+
+        
       # scan the source dependencies.
       - name: Snyk SCA Scan (Dependencies)
         env:
@@ -112,8 +116,7 @@ jobs:
           docker tag ${{ inputs.image_name }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:${{ github.sha }}
           docker tag ${{ inputs.image_name }}:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}:latest
 
-      - name: Setup Snyk
-        uses: snyk/actions/setup@master
+
 
       # Scans the Docker image for vulnerabilities.| Saves results to JSON.| Fails the job only if HIGH or CRITICAL issues exist.
       - name: Snyk Container Scan (CLI)
