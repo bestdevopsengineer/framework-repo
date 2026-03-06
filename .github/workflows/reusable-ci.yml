@@ -75,6 +75,7 @@ jobs:
         run: |
           snyk container test demo-service:${{ github.sha }} --severity-threshold=high
           
+          
 
       - name: Push Docker image
         run: |
