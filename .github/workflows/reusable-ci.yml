@@ -97,7 +97,13 @@ jobs:
           fi
 
           echo "No High/Critical dependency vulnerabilities found"
-    
+
+      - name: Upload Snyk SCA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-sca-report
+          path: snyk-sca-results.json
+          
       # Builds the Docker image using the commit SHA as the tag.
       - name: Build Docker image 
         run: | 
